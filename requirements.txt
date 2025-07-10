@@ -1,5 +1,5 @@
-setuptools>=42
-wheel
+setuptools>=67.0.0
+wheel>=0.38.4
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
