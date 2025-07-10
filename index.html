@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Campanion AI Marketing Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .chat-bubble-user { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; 
+    }
+    .chat-bubble-model { 
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+    .chat-bubble-system {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+    .prose h1, .prose h2, .prose h3, .prose h4 { 
+      margin-top: 1em; 
+      margin-bottom: 0.5em; 
+      color: inherit;
+    }
+    .prose ul { list-style-position: inside; }
+    .prose ol { list-style-position: inside; }
+    .prose p { margin-bottom: 0.75em; color: inherit; }
+    .prose strong { color: inherit; font-weight: 600; }
+    .loader {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    }
+    .mode-indicator {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mode-conversation { background: #e0f2fe; color: #01579b; }
+    .mode-forensic { background: #fff3e0; color: #e65100; }
+    .mode-creative { background: #f3e5f5; color: #4a148c; }
+    .mode-report { background: #e8f5e8; color: #1b5e20; }
+    .mode-brainstorm { background: #fff8e1; color: #ff6f00; }
+    .analytics-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      padding: 20px;
+      color: white;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .feature-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.05);
+      transition: all 0.3s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
+  <div class="container mx-auto p-4 md:p-6 lg:p-8 max-w-7xl">
+    <!-- Enhanced Header -->
+    <header class="text-center mb-8">
+      <div class="glass-effect rounded-2xl p-8 mb-6">
+        <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+          CamPaxe AI
+        </h1>
+        <p class="text-xl text-gray-700 mb-4">Advanced Marketing Intelligence & Strategy Platform</p>
+        <div class="flex justify-center space-x-4 text-sm text-gray-600">
+          <span class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>AI Strategy</span>
+          <span class="flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>Data Analytics</span>
+          <span class="flex items-center"><span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>Performance Optimization</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+      <!-- Main Chat Interface -->
+      <div class="xl:col-span-3 bg-white rounded-2xl shadow-xl p-6 flex flex-col" style="height: 85vh;">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b">
+          <h2 class="text-2xl font-bold text-gray-800">AI Marketing Strategist</h2>
+          <div class="flex items-center space-x-3">
+            <select id="mode-selector" class="text-sm bg-gray-100 rounded-lg px-3 py-2 font-medium">
+              <option value="auto">🎯 Auto-Detect</option>
+              <option value="conversation">💬 Conversation</option>
+              <option value="forensic">🔍 Forensic Analysis</option>
+              <option value="creative">🎨 Creative Coach</option>
+              <option value="report">📊 Report Generator</option>
+              <option value="brainstorm">💡 Brainstorming</option>
+              <option value="alert">⚠️ Alert Explainer</option>
+            </select>
+            <div id="current-mode" class="mode-indicator mode-conversation">Auto</div>
+          </div>
+        </div>
+        
+        <div id="chat-window" class="flex-grow overflow-y-auto pr-4 space-y-6 mb-6">
+          <!-- Enhanced Welcome Message -->
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+              🤖
+            </div>
+            <div class="chat-bubble-system p-6 rounded-xl max-w-4xl prose shadow-lg">
+              <div class="flex items-center mb-3">
+                <h3 class="text-lg font-bold text-white mb-0">Welcome to Campanion AI! 🚀</h3>
+              </div>
+              <p class="text-white/90 mb-4">I'm your advanced AI marketing strategist with 30+ years of expertise across all major advertising platforms. I can help you with:</p>
+              <div class="grid grid-cols-2 gap-3 text-sm text-white/90">
+                <div>• 🎯 Strategic campaign planning</div>
+                <div>• 🔍 Performance forensic analysis</div>
+                <div>• 🎨 Creative optimization</div>
+                <div>• 📊 Executive reporting</div>
+                <div>• 💡 Creative brainstorming</div>
+                <div>• 🚨 Alert interpretation</div>
+              </div>
+              <p class="text-white/90 mt-4 mb-0">Ask me anything about your marketing strategy, and I'll provide data-driven insights and actionable recommendations!</p>
+            </div>
+          </div>
+        </div>
+        
+        <div id="loading-indicator" class="hidden flex justify-center items-center py-4">
+          <div class="loader"></div>
+          <span class="ml-3 text-gray-600">Analyzing with AI...</span>
+        </div>
+        
+        <!-- Enhanced Input Area -->
+        <div class="bg-gray-50 rounded-xl p-4">
+          <div class="flex items-end gap-4">
+            <div class="flex-grow">
+              <textarea 
+                id="chat-input" 
+                class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-4 resize-none" 
+                placeholder="Ask about campaign performance, strategy, optimization ideas..."
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="flex flex-col gap-2">
+              <button id="send-btn" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg px-6 py-3 hover:from-blue-700 hover:to-purple-700 transition duration-200 shadow-lg">
+                Send
+              </button>
+              <button id="clear-chat" class="bg-gray-500 text-white font-medium rounded-lg px-4 py-2 hover:bg-gray-600 transition text-sm">
+                Clear
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-between mt-3 text-sm text-gray-500">
+            <span>💡 Tip: Be specific about your goals, timeframes, and challenges for better insights</span>
+            <span id="char-counter">0/2000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enhanced Tools & Analytics Panel -->
+      <div class="xl:col-span-1 space-y-6">
+        <!-- System Status -->
+        <div class="feature-card">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">System Status</h3>
+          <div class="space-y-3">
+            <button id="sync-btn" class="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold rounded-lg px-4 py-3 hover:from-green-600 hover:to-teal-700 transition">
+              🔄 Sync Campaign Data
+            </button>
+            <button id="health-check-btn" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg px-4 py-3 hover:from-blue-600 hover:to-indigo-700 transition">
+              ❤️ System Health Check
+            </button>
+            <div id="tools-status" class="text-center text-sm font-medium text-gray-600 h-6"></div>
+          </div>
+        </div>
+
+        <!-- Quick Analytics -->
+        <div class="feature-card">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">Quick Analytics</h3>
+          <div class="space-y-3">
+            <button id="performance-summary-btn" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium rounded-lg px-4 py-2 hover:from-purple-600 hover:to-pink-700 transition text-sm">
+              📈 Performance Summary
+            </button>
+            <button id="anomaly-detection-btn" class="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-medium rounded-lg px-4 py-2 hover:from-orange-600 hover:to-red-700 transition text-sm">
+              🚨 Detect Anomalies
+            </button>
+            <button id="recommendations-btn" class="w-full bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-medium rounded-lg px-4 py-2 hover:from-teal-600 hover:to-cyan-700 transition text-sm">
+              💡 Get Recommendations
+            </button>
+          </div>
+        </div>
+
+        <!-- Data Query Interface -->
+        <div class="feature-card">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">Data Analysis</h3>
+          <div class="space-y-4">
+            <select id="analysis-type" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 text-sm">
+              <option value="standard">Standard Analysis</option>
+              <option value="forensic">Forensic Investigation</option>
+              <option value="trend">Trend Analysis</option>
+              <option value="efficiency">Efficiency Optimization</option>
+              <option value="creative">Creative Performance</option>
+            </select>
+            <textarea 
+              id="data-query-input" 
+              class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 p-3 text-sm" 
+              rows="3" 
+              placeholder="Analyze campaign performance, identify trends, or investigate specific issues..."
+            ></textarea>
+            <button id="data-query-btn" class="w-full bg-gradient-to-r from-teal-600 to-blue-600 text-white font-semibold rounded-lg px-4 py-3 hover:from-teal-700 hover:to-blue-700 transition">
+              🔍 Analyze Data
+            </button>
+            <div id="data-query-loader" class="hidden flex justify-center py-2">
+              <div class="loader"></div>
+            </div>
+            <div id="data-query-result" class="mt-4 p-4 bg-gray-50 rounded-lg border max-h-96 overflow-y-auto prose prose-sm">
+              <p class="text-gray-500 m-0">Advanced analytics results will appear here.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="feature-card">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">Quick Actions</h3>
+          <div class="grid grid-cols-1 gap-2 text-sm">
+            <button class="quick-action-btn" data-query="What's my best performing campaign this week?">
+              🏆 Top Performers
+            </button>
+            <button class="quick-action-btn" data-query="Which campaigns need creative refresh?">
+              🎨 Creative Health
+            </button>
+            <button class="quick-action-btn" data-query="How can I improve my ROAS?">
+              💰 ROAS Optimization
+            </button>
+            <button class="quick-action-btn" data-query="Generate a weekly performance report">
+              📊 Weekly Report
+            </button>
+            <button class="quick-action-btn" data-query="What's my audience overlap situation?">
+              👥 Audience Analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const API_BASE_URL = 'http://127.0.0.1:8000';
+
+      let conversationId = null;
+      let currentTurnId = null;
+
+      // DOM Elements
+      const chatWindow = document.getElementById('chat-window');
+      const chatInput = document.getElementById('chat-input');
+      const sendBtn = document.getElementById('send-btn');
+      const clearChatBtn = document.getElementById('clear-chat');
+      const loadingIndicator = document.getElementById('loading-indicator');
+      const modeSelector = document.getElementById('mode-selector');
+      const currentModeIndicator = document.getElementById('current-mode');
+      const charCounter = document.getElementById('char-counter');
+
+      // System tools
+      const syncBtn = document.getElementById('sync-btn');
+      const healthCheckBtn = document.getElementById('health-check-btn');
+      const toolsStatus = document.getElementById('tools-status');
+
+      // Analytics tools
+      const performanceSummaryBtn = document.getElementById('performance-summary-btn');
+      const anomalyDetectionBtn = document.getElementById('anomaly-detection-btn');
+      const recommendationsBtn = document.getElementById('recommendations-btn');
+
+      // Data query
+      const analysisTypeSelect = document.getElementById('analysis-type');
+      const dataQueryInput = document.getElementById('data-query-input');
+      const dataQueryBtn = document.getElementById('data-query-btn');
+      const dataQueryLoader = document.getElementById('data-query-loader');
+      const dataQueryResult = document.getElementById('data-query-result');
+
+      // Quick actions
+      const quickActionBtns = document.querySelectorAll('.quick-action-btn');
+
+      // Character counter
+      chatInput.addEventListener('input', () => {
+        const length = chatInput.value.length;
+        charCounter.textContent = `${length}/2000`;
+        charCounter.className = length > 1800 ? 'text-red-500' : 'text-gray-500';
+      });
+
+      // Mode selector
+      modeSelector.addEventListener('change', () => {
+        const mode = modeSelector.value;
+        currentModeIndicator.textContent = mode === 'auto' ? 'Auto' : mode.charAt(0).toUpperCase() + mode.slice(1);
+        currentModeIndicator.className = `mode-indicator mode-${mode === 'auto' ? 'conversation' : mode}`;
+      });
+
+      // Quick action buttons
+      quickActionBtns.forEach(btn => {
+        btn.className += ' w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg px-3 py-2 transition text-left';
+        btn.addEventListener('click', () => {
+          const query = btn.getAttribute('data-query');
+          chatInput.value = query;
+          handleSendMessage();
+        });
+      });
+
+      // Clear chat
+      clearChatBtn.addEventListener('click', () => {
+        if (confirm('Clear all conversation history?')) {
+          chatWindow.innerHTML = '';
+          conversationId = null;
+          currentTurnId = null;
+          // Re-add welcome message
+          location.reload();
+        }
+      });
+
+      const handleSendMessage = async () => {
+        const query = chatInput.value.trim();
+        if (!query) return;
+
+        if (query.length > 2000) {
+          alert('Message too long. Please keep under 2000 characters.');
+          return;
+        }
+
+        appendMessage(query, 'user');
+        chatInput.value = '';
+        charCounter.textContent = '0/2000';
+        loadingIndicator.classList.remove('hidden');
+
+        try {
+          const mode = modeSelector.value;
+          const payload = { query };
+          if (conversationId) {
+            payload.conversation_id = conversationId;
+          }
+
+          const url = mode === 'auto' ? 
+            `${API_BASE_URL}/ask-strategist/` : 
+            `${API_BASE_URL}/ask-strategist/?mode=${mode}`;
+
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'API Error');
+          }
+
+          const data = await response.json();
+          if (data.conversation_id && !conversationId) {
+            conversationId = data.conversation_id;
+          }
+          currentTurnId = data.turn_id;
+
+          // Update mode indicator if auto-detected
+          if (data.detected_mode && mode === 'auto') {
+            currentModeIndicator.textContent = data.detected_mode.charAt(0).toUpperCase() + data.detected_mode.slice(1);
+            currentModeIndicator.className = `mode-indicator mode-${data.detected_mode}`;
+          }
+
+          appendMessage(data.response, 'model', currentTurnId, data.suggested_followups);
+        } catch (error) {
+          appendMessage(`❌ Error: ${error.message}`, 'system');
+        } finally {
+          loadingIndicator.classList.add('hidden');
+        }
+      };
+
+      const appendMessage = (text, role, turnId = null, suggestions = null) => {
+        const messageWrapper = document.createElement('div');
+        const bubble = document.createElement('div');
+
+        if (role === 'user') {
+          messageWrapper.className = 'flex justify-end items-start gap-4';
+          const avatar = document.createElement('div');
+          avatar.className = 'w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-lg order-2';
+          avatar.textContent = '👤';
+          bubble.className = 'chat-bubble-user p-4 rounded-xl max-w-xl shadow-lg order-1';
+          bubble.textContent = text;
+          messageWrapper.appendChild(bubble);
+          messageWrapper.appendChild(avatar);
+        } else {
+          messageWrapper.className = 'flex items-start gap-4';
+          const avatar = document.createElement('div');
+          avatar.className = 'w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg flex-shrink-0';
+          
+          if (role === 'system') {
+            avatar.className += ' bg-gradient-to-br from-blue-500 to-cyan-600';
+            avatar.textContent = '⚠️';
+            bubble.className = 'chat-bubble-system p-4 rounded-xl max-w-4xl prose shadow-lg';
+          } else {
+            avatar.className += ' bg-gradient-to-br from-purple-500 to-pink-600';
+            avatar.textContent = '🤖';
+            bubble.className = 'chat-bubble-model p-4 rounded-xl max-w-4xl prose shadow-lg';
+          }
+
+          bubble.innerHTML = marked.parse(text);
+          
+          // Add suggested follow-ups
+          if (suggestions && suggestions.length > 0) {
+            const suggestionsContainer = document.createElement('div');
+            suggestionsContainer.className = 'mt-4 pt-3 border-t border-white/20';
+            suggestionsContainer.innerHTML = '<div class="text-sm font-semibold text-white/90 mb-2">💡 Suggested next questions:</div>';
+            
+            const suggestionsGrid = document.createElement('div');
+            suggestionsGrid.className = 'grid gap-2';
+            
+            suggestions.forEach(suggestion => {
+              const suggestionBtn = document.createElement('button');
+              suggestionBtn.textContent = suggestion;
+              suggestionBtn.className = 'text-left text-xs px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 transition text-white border border-white/30';
+              suggestionBtn.onclick = () => {
+                chatInput.value = suggestion;
+                chatInput.focus();
+              };
+              suggestionsGrid.appendChild(suggestionBtn);
+            });
+            
+            suggestionsContainer.appendChild(suggestionsGrid);
+            bubble.appendChild(suggestionsContainer);
+          }
+
+          messageWrapper.appendChild(avatar);
+          messageWrapper.appendChild(bubble);
+
+          if (turnId && role === 'model') {
+            const feedbackContainer = createFeedbackButtons(turnId);
+            bubble.appendChild(feedbackContainer);
+          }
+        }
+        chatWindow.appendChild(messageWrapper);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      };
+
+      const createFeedbackButtons = (turnId) => {
+        const container = document.createElement('div');
+        container.className = 'mt-4 pt-3 border-t border-white/20 flex items-center gap-3';
+        
+        const label = document.createElement('span');
+        label.textContent = 'Was this helpful?';
+        label.className = 'text-xs text-white/70';
+        container.appendChild(label);
+        
+        const createButton = (text, type, turnId) => {
+          const button = document.createElement('button');
+          button.textContent = text;
+          button.className = 'text-xs px-3 py-1 rounded-md bg-white/20 hover:bg-white/30 transition text-white border border-white/30';
+          button.onclick = () => handleFeedback(turnId, type, button);
+          return button;
+        };
+        
+        container.appendChild(createButton('👍 Yes', 'positive', turnId));
+        container.appendChild(createButton('👎 No', 'negative', turnId));
+        return container;
+      };
+
+      const handleFeedback = async (turnId, feedbackType, buttonEl) => {
+        try {
+          await fetch(`${API_BASE_URL}/feedback/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ turn_id: turnId, feedback: feedbackType })
+          });
+          buttonEl.parentElement.innerHTML = `<span class="text-xs font-semibold text-white/90">✨ Thanks for your feedback!</span>`;
+        } catch {
+          buttonEl.parentElement.innerHTML = `<span class="text-xs font-semibold text-red-300">❌ Feedback failed.</span>`;
+        }
+      };
+
+      // Event listeners
+      sendBtn.addEventListener('click', handleSendMessage);
+      chatInput.addEventListener('keypress', (e) => { 
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSendMessage(); 
+        }
+      });
+
+      // System tools
+      const showToolsStatus = (msg, color = 'text-gray-600') => {
+        toolsStatus.textContent = msg;
+        toolsStatus.className = `text-center text-sm font-medium ${color} h-6 transition-all`;
+        setTimeout(() => { toolsStatus.textContent = ''; }, 4000);
+      };
+
+      syncBtn.addEventListener('click', async () => {
+        showToolsStatus('Syncing data...', 'text-blue-600');
+        try {
+          const res = await fetch(`${API_BASE_URL}/sync-facebook-ads/`, { method: 'POST' });
+          const data = await res.json();
+          showToolsStatus('✅ ' + data.message, 'text-green-600');
+        } catch (err) {
+          showToolsStatus('❌ Sync failed', 'text-red-600');
+        }
+      });
+
+      healthCheckBtn.addEventListener('click', async () => {
+        showToolsStatus('Checking health...', 'text-blue-600');
+        try {
+          const res = await fetch(`${API_BASE_URL}/health/`);
+          const data = await res.json();
+          showToolsStatus(`✅ API: ${data.status.toUpperCase()}`, 'text-green-600');
+        } catch (err) {
+          showToolsStatus('❌ Health check failed', 'text-red-600');
+        }
+      });
+
+      // Analytics buttons
+      performanceSummaryBtn.addEventListener('click', async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/analytics/performance-summary`);
+          const data = await res.json();
+          const summary = data.summary;
+          const message = `📈 **Performance Summary**\n\n` +
+            `• **Total Campaigns**: ${data.total_campaigns}\n` +
+            `• **Total Spend**: ${summary.total_spend?.toFixed(2) || 0}\n` +
+            `• **Total Impressions**: ${summary.total_impressions?.toLocaleString() || 0}\n` +
+            `• **Average CTR**: ${summary.average_ctr?.toFixed(2) || 0}%\n` +
+            `• **Average CPC**: ${summary.average_cpc?.toFixed(2) || 0}\n` +
+            `• **High Performers**: ${summary.high_performing_campaigns || 0} campaigns`;
+          appendMessage(message, 'model');
+        } catch (err) {
+          appendMessage('❌ Failed to load performance summary. Please sync data first.', 'system');
+        }
+      });
+
+      anomalyDetectionBtn.addEventListener('click', async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/analytics/anomalies`);
+          const data = await res.json();
+          if (data.anomalies.length === 0) {
+            appendMessage('✅ **No Anomalies Detected**\n\nYour campaigns are performing within normal parameters. Keep up the good work!', 'model');
+          } else {
+            let message = `🚨 **${data.total_detected} Anomalies Detected**\n\n`;
+            data.anomalies.forEach((anomaly, i) => {
+              message += `**${i + 1}. ${anomaly.type}** (${anomaly.severity})\n`;
+              message += `Campaign: ${anomaly.campaign}\n`;
+              message += `${anomaly.description}\n\n`;
+            });
+            appendMessage(message, 'model');
+          }
+        } catch (err) {
+          appendMessage('❌ Failed to detect anomalies. Please sync data first.', 'system');
+        }
+      });
+
+      recommendationsBtn.addEventListener('click', async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/analytics/recommendations`);
+          const data = await res.json();
+          if (data.recommendations.length === 0) {
+            appendMessage('✅ **No Immediate Recommendations**\n\nYour campaigns are well-optimized! Continue monitoring performance.', 'model');
+          } else {
+            let message = `💡 **${data.total_recommendations} Optimization Recommendations**\n\n`;
+            data.recommendations.forEach((rec, i) => {
+              message += `**${i + 1}. ${rec.recommendation_type}** (${rec.priority} Priority)\n`;
+              message += `${rec.description}\n`;
+              message += `**Action**: ${rec.action}\n`;
+              message += `**Expected Impact**: ${rec.expected_impact}\n\n`;
+            });
+            appendMessage(message, 'model');
+          }
+        } catch (err) {
+          appendMessage('❌ Failed to load recommendations. Please sync data first.', 'system');
+        }
+      });
+
+      // Data query
+      dataQueryBtn.addEventListener('click', async () => {
+        const query = dataQueryInput.value.trim();
+        const analysisType = analysisTypeSelect.value;
+        
+        if (!query) {
+          dataQueryResult.innerHTML = '<p class="text-red-500 m-0">Please enter a query.</p>';
+          return;
+        }
+        
+        dataQueryLoader.classList.remove('hidden');
+        dataQueryResult.innerHTML = '<p class="text-gray-500 m-0">Analyzing data...</p>';
+        
+        try {
+          const res = await fetch(`${API_BASE_URL}/query-insights/?analysis_type=${analysisType}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+          });
+          const data = await res.json();
+          dataQueryResult.innerHTML = marked.parse(data.response);
+        } catch {
+          dataQueryResult.innerHTML = '<p class="text-red-500 m-0">Analysis failed. Please try again.</p>';
+        } finally {
+          dataQueryLoader.classList.add('hidden');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
